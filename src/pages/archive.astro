@@ -1,0 +1,43 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { loadCourses, coursePath } from '../lib/courses.mjs';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { current, courses } = loadCourses();
+const archived = courses.filter((c) => c.archived);
+const past = courses.filter((c) => !c.archived && c.semester !== current);
+const semesters = [...new Set(past.map((c) => c.semester))].sort().reverse();
+---
+
+<StarlightPage frontmatter={{ title: '지난 학기 · 보관함' }}>
+	<h2>지난 학기</h2>
+	{semesters.length === 0 && <p>아직 없습니다.</p>}
+	{
+		semesters.map((s) => (
+			<>
+				<h3>{s}학기</h3>
+				<ul>
+					{past
+						.filter((c) => c.semester === s)
+						.map((c) => (
+							<li>
+								<a href={base + coursePath(c)}>{c.name}</a>
+							</li>
+						))}
+				</ul>
+			</>
+		))
+	}
+
+	<h2>보관함</h2>
+	{archived.length === 0 && <p>보관한 과목이 없습니다.</p>}
+	<ul>
+		{
+			archived.map((c) => (
+				<li>
+					<a href={base + coursePath(c)}>{c.name}</a> <small>{c.semester}</small>
+				</li>
+			))
+		}
+	</ul>
+</StarlightPage>

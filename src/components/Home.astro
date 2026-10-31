@@ -1,0 +1,75 @@
+---
+import { getCollection } from 'astro:content';
+import { loadCourses, coursePath } from '../lib/courses.mjs';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { current, groups, courses } = loadCourses();
+const docs = await getCollection('docs');
+const lectureCount = (c) => docs.filter((d) => d.id.startsWith(`${c.semester}/${c.id}/`)).length;
+
+const active = courses.filter((c) => c.semester === current && !c.archived);
+const sections = groups
+	.map((group) => ({ group, items: active.filter((c) => c.group === group) }))
+	.filter((s) => s.items.length > 0);
+---
+
+<p class="semester">{current}학기</p>
+
+{
+	sections.map(({ group, items }) => (
+		<section>
+			<h2>{group}</h2>
+			<div class="grid">
+				{items.map((c) => (
+					<a class="card" href={base + coursePath(c)}>
+						<span class="name">{c.name}</span>
+						<span class="count">{lectureCount(c)}회</span>
+					</a>
+				))}
+			</div>
+		</section>
+	))
+}
+
+<p class="more"><a href={`${base}/archive/`}>지난 학기 · 보관함</a></p>
+
+<style>
+	.semester {
+		color: var(--sl-color-gray-3);
+		margin: 0 0 0.5rem;
+	}
+	section h2 {
+		font-size: var(--sl-text-lg);
+		margin: 1.5rem 0 0.75rem;
+	}
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+		gap: 0.75rem;
+	}
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.9rem 1rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		text-decoration: none;
+		color: var(--sl-color-white);
+		background: var(--sl-color-gray-6);
+	}
+	.card:hover {
+		border-color: var(--sl-color-accent);
+	}
+	.name {
+		font-weight: 600;
+	}
+	.count {
+		color: var(--sl-color-gray-3);
+		font-size: var(--sl-text-sm);
+	}
+	.more {
+		margin-top: 2rem;
+		font-size: var(--sl-text-sm);
+	}
+</style>

@@ -1,0 +1,68 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getCollection } from 'astro:content';
+import { loadCourses } from '../../../lib/courses.mjs';
+
+export function getStaticPaths() {
+	const { courses } = loadCourses();
+	return courses.map((c) => ({
+		params: { semester: c.semester, course: c.id },
+		props: { course: c },
+	}));
+}
+
+const { course } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const prefix = `${course.semester}/${course.id}/`;
+const docs = await getCollection('docs');
+const lectures = docs
+	.filter((d) => d.id.startsWith(prefix))
+	.map((d) => ({ date: d.id.slice(prefix.length), title: d.data.title, href: `${base}/${d.id}/` }))
+	.sort((a, b) => a.date.localeCompare(b.date));
+---
+
+<StarlightPage frontmatter={{ title: course.name }}>
+	{
+		lectures.length === 0 ? (
+			<p>아직 기록된 강의가 없습니다.</p>
+		) : (
+			<ul class="lectures">
+				{lectures.map((l, i) => (
+					<li>
+						<a href={l.href}>
+							<span class="n">{i + 1}회</span>
+							<span class="d">{l.date}</span>
+							<span class="t">{l.title}</span>
+						</a>
+					</li>
+				))}
+			</ul>
+		)
+	}
+</StarlightPage>
+
+<style>
+	.lectures {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+	.lectures li {
+		border-bottom: 1px solid var(--sl-color-gray-5);
+	}
+	.lectures a {
+		display: grid;
+		grid-template-columns: 3rem 7rem 1fr;
+		gap: 0.5rem;
+		padding: 0.7rem 0.25rem;
+		text-decoration: none;
+		color: var(--sl-color-white);
+	}
+	.lectures a:hover {
+		background: var(--sl-color-gray-6);
+	}
+	.n,
+	.d {
+		color: var(--sl-color-gray-3);
+	}
+</style>

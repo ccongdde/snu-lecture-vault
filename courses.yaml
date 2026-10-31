@@ -1,0 +1,25 @@
+# 과목 목록. 이 파일만 고치면 사이트에 반영됩니다. (Claude에게 말로 요청해도 됩니다)
+#
+# current : 지금 학기. 이 학기의 과목만 홈에 표시됩니다.
+# groups  : 홈에 보이는 그룹 순서
+# courses : id(영문, 폴더 이름) / name / group / semester(생략하면 current)
+#           status: archived 로 바꾸면 보관함으로 이동합니다. (기록은 그대로 유지)
+
+current: 2026-2
+
+groups:
+  - 생명과학
+  - 실험
+  - 경영
+  - 기타
+
+courses:
+  - { id: biodiversity-env,     name: 생물다양성과 환경 (001),        group: 생명과학 }
+  - { id: biology-2,            name: Biology 2 (002),                 group: 생명과학 }
+  - { id: biochemistry-1,       name: "Biochemistry 1: Structure …",  group: 생명과학 }
+  - { id: life-science-lab-2,   name: 생명과학전공실험2 (004),        group: 실험 }
+  - { id: biology-lab-2,        name: 생물학실험 2 (009),             group: 실험 }
+  - { id: production-service,   name: 생산서비스운영 (001),           group: 경영 }
+  - { id: financial-mgmt,       name: 재무관리 (002),                  group: 경영 }
+  - { id: swimming-2,           name: 수영 2(평영) (002),             group: 기타 }
+  - { id: disability-awareness, name: 장애인식개선교육 (학생),        group: 기타 }
