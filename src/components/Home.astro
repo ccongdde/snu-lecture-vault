@@ -1,75 +1,176 @@
 ---
-import { getCollection } from 'astro:content';
 import { loadCourses, coursePath } from '../lib/courses.mjs';
+import { fmtDate, lecturePath, lecturesOf } from '../lib/lectures.mjs';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const { current, groups, courses } = loadCourses();
-const docs = await getCollection('docs');
-const lectureCount = (c) => docs.filter((d) => d.id.startsWith(`${c.semester}/${c.id}/`)).length;
 
 const active = courses.filter((c) => c.semester === current && !c.archived);
+const rows = await Promise.all(
+	active.map(async (c) => {
+		const list = await lecturesOf(c.semester, c.id);
+		return { c, count: list.length, last: list.at(-1) };
+	}),
+);
 const sections = groups
-	.map((group) => ({ group, items: active.filter((c) => c.group === group) }))
+	.map((group) => ({ group, items: rows.filter((r) => r.c.group === group) }))
 	.filter((s) => s.items.length > 0);
+
+// 이어서 보기 기본값: 가장 최근 날짜의 강의
+const newest = rows
+	.filter((r) => r.last)
+	.sort((a, b) => b.last.date.localeCompare(a.last.date))[0];
+const resume = newest && {
+	href: base + lecturePath(newest.last.id),
+	title: newest.last.title,
+	meta: `${newest.c.name} · ${newest.last.n}회 · ${fmtDate(newest.last.date)}`,
+};
 ---
 
-<p class="semester">{current}학기</p>
+<div class="home not-content">
+	{
+		resume && (
+			<a class="resume" id="resume" href={resume.href}>
+				<div class="grow">
+					<div class="lbl" id="resume-lbl">가장 최근 강의</div>
+					<div class="ttl" id="resume-ttl">{resume.title}</div>
+					<div class="sub" id="resume-sub">{resume.meta}</div>
+				</div>
+				<span class="btn">읽기 →</span>
+			</a>
+		)
+	}
 
-{
-	sections.map(({ group, items }) => (
-		<section>
-			<h2>{group}</h2>
-			<div class="grid">
-				{items.map((c) => (
-					<a class="card" href={base + coursePath(c)}>
-						<span class="name">{c.name}</span>
-						<span class="count">{lectureCount(c)}회</span>
-					</a>
-				))}
-			</div>
-		</section>
-	))
-}
+	{
+		sections.map(({ group, items }) => (
+			<section>
+				<h2>{group}</h2>
+				<div class="grid">
+					{items.map(({ c, count, last }) => (
+						<a class="row" href={base + coursePath(c)}>
+							<div class="grow">
+								<div class="name">{c.name}</div>
+								<div class={`sub${last ? '' : ' muted'}`}>{last ? `최근 · ${last.title}` : '아직 기록 없음'}</div>
+							</div>
+							<span class={`pill${count ? '' : ' muted'}`}>{count}회</span>
+						</a>
+					))}
+				</div>
+			</section>
+		))
+	}
+</div>
 
-<p class="more"><a href={`${base}/archive/`}>지난 학기 · 보관함</a></p>
+<script>
+	// 마지막으로 본 강의가 있으면 "이어서 보기"로 바꾼다.
+	try {
+		const saved = JSON.parse(localStorage.getItem('lastLecture') ?? 'null');
+		const a = document.getElementById('resume') as HTMLAnchorElement | null;
+		if (saved?.href && a) {
+			a.href = saved.href;
+			document.getElementById('resume-lbl')!.textContent = '이어서 보기';
+			document.getElementById('resume-ttl')!.textContent = saved.title;
+			document.getElementById('resume-sub')!.textContent = saved.meta;
+		}
+	} catch {}
+</script>
+
+<style is:global>
+	:root {
+		--sl-content-width: 62rem;
+	}
+	/* 홈에는 제목이 없어서 비어 있는 첫 패널을 숨긴다 */
+	.content-panel:first-of-type {
+		display: none;
+	}
+</style>
 
 <style>
-	.semester {
-		color: var(--sl-color-gray-3);
-		margin: 0 0 0.5rem;
+	.home {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		padding-top: 1.5rem;
 	}
-	section h2 {
-		font-size: var(--sl-text-lg);
-		margin: 1.5rem 0 0.75rem;
+	.grow {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	.resume {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.25rem 1.5rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.9rem;
+		background: var(--sl-color-accent-low);
+		text-decoration: none;
+	}
+	.lbl {
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		color: var(--sl-color-accent-high);
+	}
+	.ttl {
+		margin-top: 0.15rem;
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: var(--sl-color-white);
+	}
+	.btn {
+		flex: none;
+		padding: 0.6rem 1.2rem;
+		border-radius: 0.6rem;
+		background: var(--sl-color-accent);
+		color: var(--sl-color-black);
+		font-weight: 500;
+	}
+	h2 {
+		margin: 0 0 0.75rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 700;
+		color: var(--sl-color-gray-3);
+		border: 0;
 	}
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
 		gap: 0.75rem;
 	}
-	.card {
+	.row {
 		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
+		align-items: center;
+		gap: 0.75rem;
 		padding: 0.9rem 1rem;
 		border: 1px solid var(--sl-color-gray-5);
-		border-radius: 0.5rem;
+		border-radius: 0.75rem;
 		text-decoration: none;
-		color: var(--sl-color-white);
+	}
+	.row:hover {
+		border-color: var(--sl-color-accent);
 		background: var(--sl-color-gray-6);
 	}
-	.card:hover {
-		border-color: var(--sl-color-accent);
-	}
 	.name {
-		font-weight: 600;
+		font-weight: 700;
+		color: var(--sl-color-white);
 	}
-	.count {
+	.sub {
+		margin-top: 0.1rem;
+		font-size: var(--sl-text-sm);
 		color: var(--sl-color-gray-3);
-		font-size: var(--sl-text-sm);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-	.more {
-		margin-top: 2rem;
+	.pill {
+		flex: none;
+		padding: 0.1rem 0.6rem;
+		border-radius: 0.5rem;
+		background: var(--sl-color-gray-6);
 		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-2);
+	}
+	.muted {
+		color: var(--sl-color-gray-4);
 	}
 </style>

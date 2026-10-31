@@ -1,7 +1,7 @@
 ---
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
-import { getCollection } from 'astro:content';
 import { loadCourses } from '../../../lib/courses.mjs';
+import { fmtDate, lecturePath, lecturesOf } from '../../../lib/lectures.mjs';
 
 export function getStaticPaths() {
 	const { courses } = loadCourses();
@@ -13,56 +13,77 @@ export function getStaticPaths() {
 
 const { course } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const prefix = `${course.semester}/${course.id}/`;
-const docs = await getCollection('docs');
-const lectures = docs
-	.filter((d) => d.id.startsWith(prefix))
-	.map((d) => ({ date: d.id.slice(prefix.length), title: d.data.title, href: `${base}/${d.id}/` }))
-	.sort((a, b) => a.date.localeCompare(b.date));
+const lectures = (await lecturesOf(course.semester, course.id)).reverse();
 ---
 
-<StarlightPage frontmatter={{ title: course.name }}>
-	{
-		lectures.length === 0 ? (
-			<p>아직 기록된 강의가 없습니다.</p>
-		) : (
-			<ul class="lectures">
-				{lectures.map((l, i) => (
-					<li>
-						<a href={l.href}>
-							<span class="n">{i + 1}회</span>
-							<span class="d">{l.date}</span>
-							<span class="t">{l.title}</span>
-						</a>
-					</li>
-				))}
-			</ul>
-		)
-	}
+<StarlightPage frontmatter={{ title: course.name, tableOfContents: false }} hasSidebar={false}>
+	<div class="not-content list">
+		{
+			lectures.length === 0 ? (
+				<p class="empty">아직 기록된 강의가 없습니다. 수업 후 PDF와 녹음을 올리면 여기에 쌓입니다.</p>
+			) : (
+				<ul>
+					{lectures.map((l) => (
+						<li>
+							<a href={base + lecturePath(l.id)}>
+								<span class="n">{l.n}회</span>
+								<span class="d">{fmtDate(l.date)}</span>
+								<span class="t">{l.title}</span>
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+							</a>
+						</li>
+					))}
+				</ul>
+			)
+		}
+	</div>
 </StarlightPage>
 
-<style>
-	.lectures {
-		list-style: none;
-		padding: 0;
-		margin: 0;
+<style is:global>
+	:root {
+		--sl-content-width: 54rem;
 	}
-	.lectures li {
+</style>
+
+<style>
+	.list {
+		margin-top: 1.5rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+	}
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	li {
 		border-bottom: 1px solid var(--sl-color-gray-5);
 	}
-	.lectures a {
+	a {
 		display: grid;
-		grid-template-columns: 3rem 7rem 1fr;
-		gap: 0.5rem;
-		padding: 0.7rem 0.25rem;
+		grid-template-columns: 3rem 5rem minmax(0, 1fr) 1rem;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem 0.5rem;
 		text-decoration: none;
 		color: var(--sl-color-white);
 	}
-	.lectures a:hover {
+	a:hover {
 		background: var(--sl-color-gray-6);
 	}
 	.n,
 	.d {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+	}
+	.t {
+		font-size: 1.0625rem;
+		font-weight: 500;
+	}
+	svg {
+		color: var(--sl-color-gray-4);
+	}
+	.empty {
+		padding: 1.5rem 0;
 		color: var(--sl-color-gray-3);
 	}
 </style>

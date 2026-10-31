@@ -1,0 +1,55 @@
+:root {
+	--sl-font: 'Noto Sans KR', system-ui, sans-serif;
+	--sl-content-width: 46rem;
+	--sl-sidebar-width: 15rem;
+	--sl-nav-height: 4rem;
+	--sl-text-body: 1.0625rem;
+	--sl-line-height: 1.85;
+	--sl-text-h1: 2.125rem;
+	--sl-text-h2: 1.5rem;
+}
+
+/* 다크 (기본) */
+:root {
+	--sl-color-accent-low: #1b2a52;
+	--sl-color-accent: #8fa8e8;
+	--sl-color-accent-high: #c7d4f5;
+}
+
+/* 라이트 */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #e8eefa;
+	--sl-color-accent: #2b4c9b;
+	--sl-color-accent-high: #1f3a7a;
+}
+
+.sl-markdown-content h2 {
+	margin-top: 2.5rem;
+	font-weight: 700;
+}
+
+/* 시험 언급 박스 */
+.starlight-aside--caution {
+	border: 0;
+	border-radius: 0.75rem;
+	padding: 0.9rem 1.1rem;
+	background: rgba(232, 185, 49, 0.14);
+	--sl-color-asides-text-accent: #f3d98b;
+}
+:root[data-theme='light'] .starlight-aside--caution {
+	background: #fff4d6;
+	--sl-color-asides-text-accent: #5c3f00;
+}
+
+/* 접기(일화, 전체 녹취) */
+.sl-markdown-content details {
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	padding: 0.85rem 1.1rem;
+	margin-top: 0.75rem;
+}
+.sl-markdown-content details > summary {
+	cursor: pointer;
+	font-weight: 500;
+	color: var(--sl-color-gray-2);
+}

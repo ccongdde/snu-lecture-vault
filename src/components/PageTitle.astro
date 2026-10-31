@@ -1,0 +1,62 @@
+---
+import { loadCourses } from '../lib/courses.mjs';
+import { fmtDate, lecturesOf } from '../lib/lectures.mjs';
+import { parseRoute } from '../lib/route.mjs';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const { semester, course, lecture } = parseRoute(Astro.url.pathname);
+const cur = loadCourses().courses.find((c) => c.id === course && c.semester === semester);
+const title = Astro.locals.starlightRoute.entry.data.title;
+const isHome = !cur && Astro.url.pathname.replace(/\/$/, '') === base;
+
+let lectureMeta = '';
+let courseMeta = '';
+if (cur) {
+	const list = await lecturesOf(semester, course);
+	const found = lecture ? list.find((l) => l.date === lecture) : undefined;
+	if (found) {
+		lectureMeta = `${found.n}회 · ${fmtDate(found.date)}`;
+	} else if (!lecture) {
+		const last = list.at(-1);
+		courseMeta = `${semester}학기 · ${list.length}회${last ? ` · 마지막 기록 ${fmtDate(last.date)}` : ''}`;
+	}
+}
+---
+
+{
+	!isHome && (
+		<div class="head">
+			{cur && !lecture && (
+				<nav class="crumb" aria-label="경로">
+					<a href={`${base}/`}>홈</a> / {cur.group}
+				</nav>
+			)}
+			{lectureMeta && <div class="meta" data-meta={`${cur?.name} · ${lectureMeta}`}>{lectureMeta}</div>}
+			<h1 id="_top">{title}</h1>
+			{courseMeta && <div class="meta">{courseMeta}</div>}
+		</div>
+	)
+}
+
+<style>
+	.head {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	h1 {
+		margin: 0;
+		font-size: var(--sl-text-h1);
+		line-height: var(--sl-line-height-headings);
+		font-weight: 700;
+		color: var(--sl-color-white);
+	}
+	.meta,
+	.crumb {
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+	}
+	.crumb a {
+		color: var(--sl-color-accent-high);
+	}
+</style>
